@@ -52,9 +52,11 @@ sync relay, join links, and music-tuned sync.
 - [x] **Guest suggestTrack wired**: was plumbed session→repo with zero call sites; VM exposes it.
 - [x] **R8 keeps** for `org.simpmusic.listentogether.**` (field names survive minification —
       the exact Metrolist 13.4.x failure).
-- [ ] Player-UI entry point for guest suggestions (VM call site exists; needs the menu button
-      on both player skins).
-- [ ] Room queue UI + keep `suggested_by` through the domain boundary ("who added what").
+- [x] **Guest "suggest this song" entry point**: NowPlayingBottomSheet gains a
+      "Suggest to room" row (Groups icon, visible only while in a room) — builds a RoomTrack
+      from the current song and calls the repository; disables after one send.
+- [x] **Room queue UI + "Added by"**: `suggestedBy` now survives the domain boundary
+      (RoomTrack field); every member sees the queue with position chips and attribution.
 - [ ] Host toggles: "let others change playback / add songs".
 - [ ] Persistent/named rooms (bbolt persistence exists now; #2571's original blocker is gone).
 - [ ] Adopt the negotiated protocol features metroserver shipped (features, drift_report,
