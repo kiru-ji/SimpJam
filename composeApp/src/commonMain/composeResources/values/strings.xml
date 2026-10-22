@@ -793,6 +793,8 @@
     <string name="lt_join_room">Join room</string>
     <string name="lt_background_warning">Leaving the app or switching away for too long will disconnect you from the room.</string>
     <string name="lt_disconnect">Disconnect</string>
+    <string name="lt_suggest_to_room">Suggest to room</string>
+    <string name="lt_suggested_to_room">Suggested to the room</string>
     <string name="lt_room_queue">Room queue</string>
     <string name="lt_added_by">Added by %1$s</string>
     <string name="lt_invite_title">Scan to join the room</string>

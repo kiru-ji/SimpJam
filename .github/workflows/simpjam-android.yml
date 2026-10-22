@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [ dev ]
+    tags: [ 'v*' ]
     paths-ignore:
       - 'README.md'
       - 'ROADMAP.md'
@@ -162,7 +163,10 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.SIMPJAM_KEYSTORE_B64 }}
         run: |
-          echo "$KEYSTORE_B64" | base64 -d > simpjam.jks
+          set -euo pipefail
+          # tr strips any stray newlines; -w0 output is single-line but be paranoid.
+          printf '%s' "$KEYSTORE_B64" | tr -d ' \n\r' | base64 -d > simpjam.jks
+          test $(stat -c%s simpjam.jks) -gt 1000 || { echo "keystore looks truncated"; exit 1; }
           ls -la simpjam.jks
 
       - name: Sign + verify release APK

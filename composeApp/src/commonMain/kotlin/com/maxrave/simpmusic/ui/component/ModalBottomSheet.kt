@@ -171,6 +171,9 @@ import com.maxrave.simpmusic.ui.icon.Remove
 import com.maxrave.simpmusic.ui.icon.Search
 import com.maxrave.simpmusic.ui.icon.Sensors
 import com.maxrave.simpmusic.ui.icon.Share
+import com.maxrave.domain.data.model.listentogether.RoomTrack
+import com.maxrave.domain.repository.ListenTogetherRepository
+import com.maxrave.simpmusic.ui.icon.Groups
 import com.maxrave.simpmusic.ui.icon.SimpIcons
 import com.maxrave.simpmusic.ui.icon.Speed
 import com.maxrave.simpmusic.ui.icon.Sync
@@ -200,6 +203,8 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import simpmusic.composeapp.generated.resources.Res
 import simpmusic.composeapp.generated.resources.add_to_a_playlist
+import simpmusic.composeapp.generated.resources.lt_suggest_to_room
+import simpmusic.composeapp.generated.resources.lt_suggested_to_room
 import simpmusic.composeapp.generated.resources.add_to_queue
 import simpmusic.composeapp.generated.resources.add_to_queue_disabled_endless
 import simpmusic.composeapp.generated.resources.add_to_queue_disabled_radio
@@ -1371,6 +1376,12 @@ fun NowPlayingBottomSheet(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
+    // ── SimpJam: room state for the "Suggest to room" action. Repository (singleton) directly,
+    // not the screen-scoped ListenTogetherViewModel — same pattern the player's Groups capsule
+    // uses (AppleMusicShared): one boolean off a StateFlow is all this needs.
+    val ltRepo: ListenTogetherRepository = koinInject()
+    val ltRoom by ltRepo.room.collectAsStateWithLifecycle()
+    var ltSuggested by remember { mutableStateOf(false) }
     val modelBottomSheetState =
         rememberModalBottomSheetState(
             skipPartiallyExpanded = true,
@@ -1803,6 +1814,29 @@ fun NowPlayingBottomSheet(
                             enable = addToQueueBlock == null,
                         ) {
                             viewModel.onUIEvent(NowPlayingBottomSheetUIEvent.AddToQueue)
+                        }
+                    }
+                    // ── SimpJam: offer THIS song to the Listen Together room ────────────────
+                    // Only while actually in a room. suggestTrack was plumbed session→repo
+                    // with zero call sites before SimpJam; this is the guest-facing half of
+                    // "add a song" — the host sees it in the Suggestions section and approves.
+                    // Hosts can suggest too; the server routes it through the same queue path.
+                    if (ltRoom.inRoom && uiState.songUIState.videoId.isNotEmpty()) {
+                        ActionButton(
+                            icon = SimpIcons.Groups,
+                            text = if (ltSuggested) Res.string.lt_suggested_to_room else Res.string.lt_suggest_to_room,
+                            enable = !ltSuggested,
+                        ) {
+                            ltRepo.suggestTrack(
+                                RoomTrack(
+                                    id = uiState.songUIState.videoId,
+                                    title = uiState.songUIState.title,
+                                    artist = uiState.songUIState.listArtists.joinToString(", ") { it.name },
+                                    durationMs = (song?.durationSeconds ?: 0) * 1000L,
+                                    thumbnail = uiState.songUIState.thumbnails.orEmpty(),
+                                ),
+                            )
+                            ltSuggested = true
                         }
                     }
                     ActionButton(
