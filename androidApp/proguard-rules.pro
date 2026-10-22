@@ -63,6 +63,18 @@
 -keep class com.maxrave.simpmusic.extension.AllExtKt$* { *; }
 -keep class com.maxrave.kotlinytmusicscraper.extension.MapExtKt$* { *; }
 
+# ── Listen Together wire protocol (SimpJam) ──────────────────────────────────
+# The room protocol's @Serializable payload/message classes are encoded to protobuf
+# and sent over the WebSocket by name. R8 renaming or stripping their FIELDS breaks
+# the wire silently and ONLY in minified release builds — this is the exact failure
+# that shipped broken in Metrolist 13.4.x ("Field username_ for ... not found").
+# Keep the whole protocol package with members intact so field names survive R8.
+# The generic kotlinx.serialization rules above keep serializer()/Companion, but
+# not the field names the protobuf codec reflects over — hence the explicit keep.
+-keep class org.simpmusic.listentogether.** { *; }
+-keepclassmembers class org.simpmusic.listentogether.** { *; }
+-dontnote org.simpmusic.listentogether.**
+
 ## Removes all Logs as they cause perfomance issues in prod
 #-assumenosideeffects class android.util.Log {
 #    public static int w(...);
