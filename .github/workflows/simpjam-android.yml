@@ -179,6 +179,7 @@ jobs:
           mkdir -p dist
           for apk in $(find androidApp/build/outputs/apk -name '*release*.apk'); do
             name=$(basename "$apk" .apk)
+            name=${name/-unsigned/}   # "…release-unsigned" + "-signed" reads silly
             "$BT/zipalign" -f -p 4 "$apk" "dist/${name}-aligned.apk"
             # apksigner wants a PASSWORD SPEC, not a bare password: env:NAME makes it read
             # KEYSTORE_PASSWORD from the environment without ever putting it on a command line.

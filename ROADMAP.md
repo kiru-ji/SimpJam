@@ -67,7 +67,8 @@ sync relay, join links, and music-tuned sync.
 ## Phase 4 — Release
 - [x] Signed release pipeline in CI (secrets in vault; verify step runs apksigner --verbose).
 - [ ] Real-device 2-client verification (create/join/seek/pause/suggest/reconnect).
-- [ ] Cut `v0.1.0` tag → first published GitHub Release.
+- [x] Cut `v0.1.0` tag → first published GitHub Release (4 signed APKs, v2 scheme verified;
+      https://github.com/kiru-ji/SimpJam/releases/tag/v0.1.0).
 - [ ] Docs: deploy guide (metroserver + Caddy + tunnel), threat model notes (blocklist is a
       convenience, room code + host approval are the real gates; no auth on the relay —
       keep it localhost-only behind the tunnel).
