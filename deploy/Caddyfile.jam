@@ -1,0 +1,21 @@
+# SimpJam relay reverse-proxy (Caddy, automatic HTTPS via Let's Encrypt).
+#
+# sslip.io gives the VPS IP a free, real DNS name, so Caddy can obtain a genuine
+# certificate with zero manual DNS setup. The name is pinned to the public IP —
+# if Oracle reassigns the IP, update the host below and reload.
+#
+# Terminates TLS (wss://) and reverse-proxies the WebSocket to the local Go
+# metroserver on 127.0.0.1:8790. Caddy's reverse_proxy transparently handles the
+# HTTP/1.1 Upgrade handshake, so no manual Connection/Upgrade headers are needed.
+# Long read/write timeouts keep idle room sockets (60s server read deadline,
+# 30s pings) from being cut by the proxy.
+
+jam.144-24-100-113.sslip.io {
+	encode gzip
+
+	reverse_proxy 127.0.0.1:8790 {
+		# WebSocket frames can be large (queue snapshots up to 512KB);
+		# do not buffer them.
+		flush_interval -1
+	}
+}

@@ -84,6 +84,7 @@ import com.maxrave.simpmusic.ui.icon.ArrowForwardIos
 import com.maxrave.simpmusic.ui.icon.SimpIcons
 import com.maxrave.simpmusic.ui.navigation.destination.home.AnalyticsDestination
 import com.maxrave.simpmusic.ui.navigation.destination.home.HomeDestination
+import com.maxrave.simpmusic.ui.navigation.destination.home.ListenTogetherDestination
 import com.maxrave.simpmusic.ui.navigation.destination.home.NotificationDestination
 import com.maxrave.simpmusic.ui.navigation.destination.home.WrappedDestination
 import com.maxrave.simpmusic.ui.navigation.destination.library.LibraryDestination
@@ -248,7 +249,7 @@ fun App(
                 // of it. The token is handed straight to the shared view model, and the screen
                 // closes itself when it sees a session key appear.
                 token?.let { viewModel.completeLastfmLogin(it) }
-            } else if (data.host == "simpmusic.org" || data.scheme == "simpmusic") {
+            } else if (data.host == "simpmusic.org" || data.scheme == "simpmusic" || data.scheme == "simpjam") {
                 // https://simpmusic.org/app/watch?v=VIDEO_ID
                 // https://simpmusic.org/app/playlist?list=PLAYLIST_ID
                 // https://simpmusic.org/app/channel/CHANNEL_ID
@@ -259,7 +260,7 @@ fun App(
                 // For simpmusic.org: segments = ["app", "watch"] → appPath = segments[1]
                 // For simpmusic://: host IS the appPath (e.g. host="watch"), segments = []
                 val appPath =
-                    if (data.scheme == "simpmusic") {
+                    if (data.scheme == "simpmusic" || data.scheme == "simpjam") {
                         data.host
                     } else {
                         segments.getOrNull(1)
@@ -344,6 +345,16 @@ fun App(
                         } else {
                             viewModel.makeToast(getString(Res.string.this_link_is_not_supported))
                         }
+                    }
+
+                    // simpmusic://lt?room=CODE — a Listen Together join link (SimpJam).
+                    // https://simpmusic.org/app/lt?room=CODE works too. The screen prefills the
+                    // code so joining is one tap; a missing/blank room just opens the page.
+                    "lt" -> {
+                        val room = data.getQueryParameter("room")?.trim()?.uppercase()
+                        navController.navigate(
+                            ListenTogetherDestination(roomCode = room?.takeIf { it.isNotBlank() }),
+                        )
                     }
 
                     // simpmusic://taste — the AI taste card, which sits on Your library. A link of its

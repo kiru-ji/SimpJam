@@ -1,0 +1,18 @@
+[Unit]
+Description=Cloudflare quick tunnel for SimpJam relay (metroserver)
+After=network-online.target metroserver.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8790
+Restart=always
+RestartSec=5
+# NOTE: quick-tunnel URL is EPHEMERAL — it changes on every restart. For a
+# stable hostname, switch to a named tunnel (cloudflared tunnel login + create)
+# or Caddy + real domain. See deploy/README.md.
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

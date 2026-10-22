@@ -165,7 +165,8 @@
                 <data android:pathPrefix="/app/" />
             </intent-filter>
 
-            <!-- SimpMusic deep link filter (custom scheme) -->
+            <!-- SimpMusic deep link filter (custom scheme). The "simpjam" scheme is this fork's
+                 own — join links can carry either, and App.kt routes both to the same handler. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -173,6 +174,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="simpmusic" />
+                <data android:scheme="simpjam" />
             </intent-filter>
 
             <!-- Last.fm auth callback. The scheme is fixed by the callback URL registered on the

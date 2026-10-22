@@ -36,6 +36,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -78,6 +80,7 @@ import com.maxrave.domain.data.model.listentogether.RoomJoinRequest
 import com.maxrave.domain.data.model.listentogether.RoomMember
 import com.maxrave.domain.data.model.listentogether.RoomSuggestion
 import com.maxrave.simpmusic.expect.shareUrl
+import com.maxrave.simpmusic.expect.ui.QrCodeImage
 import com.maxrave.simpmusic.expect.ui.PlatformBackdrop
 import com.maxrave.simpmusic.expect.ui.layerBackdrop
 import com.maxrave.simpmusic.expect.ui.rememberBackdrop
@@ -95,6 +98,7 @@ import com.maxrave.simpmusic.ui.icon.Logout
 import com.maxrave.simpmusic.ui.icon.Settings
 import com.maxrave.simpmusic.ui.icon.Share
 import com.maxrave.simpmusic.ui.icon.SimpIcons
+import com.maxrave.simpmusic.ui.icon.QrCode
 import com.maxrave.simpmusic.ui.navigation.destination.home.ListenTogetherSettingsDestination
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.ListenTogetherViewModel
@@ -102,6 +106,9 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import simpmusic.composeapp.generated.resources.Res
+import simpmusic.composeapp.generated.resources.lt_invite_hint
+import simpmusic.composeapp.generated.resources.lt_invite_title
+import simpmusic.composeapp.generated.resources.cancel
 import simpmusic.composeapp.generated.resources.listen_together
 import simpmusic.composeapp.generated.resources.lt_background_warning
 import simpmusic.composeapp.generated.resources.lt_block
@@ -178,6 +185,7 @@ private fun initialOf(name: String): String = name.trim().firstOrNull()?.upperca
 fun ListenTogetherScreen(
     navController: NavController,
     innerPadding: PaddingValues,
+    joinRoomCode: String? = null,
     viewModel: ListenTogetherViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -185,6 +193,14 @@ fun ListenTogetherScreen(
     val codeInput by viewModel.roomCodeInput.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
     var managing by remember { mutableStateOf<RoomMember?>(null) }
+
+    // A join link (`simpmusic://lt?room=CODE`) lands here with the code prefilled, so Join is one
+    // tap away. Only while out of a room — a deep link must not clobber an active session's UI.
+    LaunchedEffect(joinRoomCode) {
+        if (joinRoomCode != null && !state.inRoom && state.pendingJoinCode == null) {
+            viewModel.onRoomCodeChange(joinRoomCode)
+        }
+    }
 
     // The back button refracts whatever the page has drawn, so the CONTENT is the backdrop source
     // and the button is its SIBLING — the same arrangement Album/Playlist/Analytics use. Nesting the
@@ -202,7 +218,16 @@ fun ListenTogetherScreen(
         val copyCode: () -> Unit = { state.roomCode?.let { clipboard.setText(AnnotatedString(it)) } }
         val shareTitle = stringResource(Res.string.listen_together)
         val shareCode: () -> Unit = {
-            state.roomCode?.let { shareUrl(title = shareTitle, url = SHARE_PREFIX + it) }
+            // A real deep link, not bare prose: tapping it opens the Listen Together page with the
+            // code already in the field (App.kt routes simpmusic://lt?room=CODE), and it is what
+            // the QR dialog encodes. Works for SimpMusic and SimpJam alike.
+            state.roomCode?.let { shareUrl(title = shareTitle, url = joinLinkFor(it)) }
+        }
+        var showInviteQr by remember { mutableStateOf(false) }
+        if (showInviteQr) {
+            state.roomCode?.let { code ->
+                InviteQrDialog(roomCode = code, onDismiss = { showInviteQr = false })
+            }
         }
         val openSettings: () -> Unit = { navController.navigate(ListenTogetherSettingsDestination) }
 
@@ -262,7 +287,7 @@ fun ListenTogetherScreen(
                     TitleBlock(inRoom = state.inRoom)
                     ConnectionLine(state.connection, viewModel::connect, viewModel::disconnect)
                     AnimatedVisibility(visible = state.inRoom) {
-                        RoomCodePoster(state, copyCode, shareCode)
+                        RoomCodePoster(state, copyCode, shareCode, { showInviteQr = true })
                     }
                 }
 
@@ -294,7 +319,7 @@ fun ListenTogetherScreen(
                 TitleBlock(inRoom = state.inRoom)
                 ConnectionLine(state.connection, viewModel::connect, viewModel::disconnect)
                 AnimatedVisibility(visible = state.inRoom) {
-                    RoomCodePoster(state, copyCode, shareCode)
+                    RoomCodePoster(state, copyCode, shareCode, { showInviteQr = true })
                 }
                 WorkArea(state, displayName, codeInput, viewModel, { managing = it }, openSettings)
             }
@@ -436,6 +461,72 @@ private fun CreditFooter() {
 
 /** Prefix for the share button; the code alone means nothing to the recipient. */
 private const val SHARE_PREFIX = "Join my SimpMusic room with code "
+
+/**
+ * The join deep link a QR encodes and the share sheet sends: opening it lands on Listen Together
+ * with [roomCode] already in the field (App.kt routes `simpmusic://lt?room=CODE`).
+ */
+private fun joinLinkFor(roomCode: String): String = "https://simpmusic.org/app/lt?room=$roomCode"
+
+/**
+ * The across-the-room invite: a QR of the join link above the code in writing.
+ *
+ * Scanning is how a room of people joins without a relay game of eight shouted characters — the
+ * same affordance Spotify Jam and Apple Music SharePlay lead with. The link works for anyone with
+ * the app installed; the code below it is the fallback for typing by hand.
+ */
+@Composable
+private fun InviteQrDialog(
+    roomCode: String,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = stringResource(Res.string.lt_invite_title),
+                    style = typo().titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                QrCodeImage(
+                    text = joinLinkFor(roomCode),
+                    modifier = Modifier.size(220.dp),
+                )
+                Text(
+                    text = stringResource(Res.string.lt_invite_hint),
+                    style = typo().bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = roomCode.chunked(4).joinToString(" "),
+                    style =
+                        typo().titleLarge.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                        ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                SecondaryButton(
+                    text = stringResource(Res.string.cancel),
+                    enabled = true,
+                    onClick = onDismiss,
+                )
+            }
+        }
+    }
+}
 
 // ───────────────────────────────── structure ─────────────────────────────────
 
@@ -581,6 +672,7 @@ private fun RoomCodePoster(
     state: ListenTogetherRoom,
     onCopyCode: () -> Unit,
     onShareCode: () -> Unit,
+    onShowQr: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
@@ -645,6 +737,8 @@ private fun RoomCodePoster(
                     }
                 }
                 GlyphButton(SimpIcons.Share, onShareCode)
+                // Across-the-room joining: hold up a QR instead of shouting eight characters.
+                GlyphButton(SimpIcons.QrCode, onShowQr)
             }
         }
     }

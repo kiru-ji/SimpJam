@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.maxrave.data.listentogether.ListenTogetherPlaybackBridge
 import com.maxrave.data.listentogether.ListenTogetherPrefs
 import com.maxrave.domain.data.model.listentogether.ListenTogetherRoom
+import com.maxrave.domain.data.model.listentogether.RoomTrack
 import com.maxrave.domain.repository.ListenTogetherRepository
 import com.maxrave.domain.manager.DataStoreManager
 import kotlinx.coroutines.flow.first
@@ -43,6 +44,19 @@ class ListenTogetherViewModel(
         viewModelScope.launch {
             dataStore.getString(ListenTogetherPrefs.AUTO_APPROVE_SUGGESTIONS).collect {
                 repository.autoApproveSuggestions = it == ListenTogetherPrefs.TRUE
+            }
+        }
+        // The blocklist is stored in settings but must reach the session, which is what actually
+        // rejects a blocked joiner. Mirrored here the same way as the auto-approve toggles, so the
+        // session always has the current set — including edits made in Settings while in a room.
+        viewModelScope.launch {
+            dataStore.getString(ListenTogetherPrefs.BLOCKLIST).collect {
+                repository.blockedNames =
+                    it.orEmpty()
+                        .split(ListenTogetherPrefs.BLOCKLIST_SEPARATOR)
+                        .map { name -> name.trim() }
+                        .filter { name -> name.isNotEmpty() }
+                        .toSet()
             }
         }
     }
@@ -97,6 +111,15 @@ class ListenTogetherViewModel(
 
     fun rejectSuggestion(id: String) {
         repository.rejectSuggestion(id)
+    }
+
+    /**
+     * A guest (or any non-host member) offers a song to the room queue instead of changing playback
+     * outright. The host then approves or rejects it. This was fully plumbed session→repo but had
+     * no call site, so guests could never actually add a song; the player exposes this.
+     */
+    fun suggestTrack(track: RoomTrack) {
+        repository.suggestTrack(track)
     }
 
     fun kickUser(userId: String) {
