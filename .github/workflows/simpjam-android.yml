@@ -1,0 +1,70 @@
+name: SimpJam Android CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ dev ]
+    paths-ignore:
+      - 'README.md'
+      - 'ROADMAP.md'
+      - 'FORK_NOTICE.md'
+      - 'docs/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Configure FOSS flavor
+        run: |
+          echo "" >> ./gradle.properties
+          echo "isFullBuild=true" >> ./gradle.properties
+
+      - name: Generate aboutLibraries.json
+        run: ./gradlew exportLibraryDefinitions
+
+      - name: Build debug APK
+        run: ./gradlew androidApp:assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: simpjam-debug-apk
+          path: androidApp/build/outputs/apk/debug/*.apk
+
+  listen-together-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Run listenTogether unit tests
+        run: ./gradlew :listenTogether:jvmTest --tests "org.simpmusic.listentogether.ServerClockTest" --tests "org.simpmusic.listentogether.MessageCodecTest"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: listen-together-test-results
+          path: core/service/listenTogether/build/reports/tests/
