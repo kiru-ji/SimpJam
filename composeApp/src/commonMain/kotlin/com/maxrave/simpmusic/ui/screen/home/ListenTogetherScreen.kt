@@ -79,6 +79,7 @@ import com.maxrave.domain.data.model.listentogether.RoomConnection
 import com.maxrave.domain.data.model.listentogether.RoomJoinRequest
 import com.maxrave.domain.data.model.listentogether.RoomMember
 import com.maxrave.domain.data.model.listentogether.RoomSuggestion
+import com.maxrave.domain.data.model.listentogether.RoomTrack
 import com.maxrave.simpmusic.expect.shareUrl
 import com.maxrave.simpmusic.expect.ui.QrCodeImage
 import com.maxrave.simpmusic.expect.ui.PlatformBackdrop
@@ -106,6 +107,8 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import simpmusic.composeapp.generated.resources.Res
+import simpmusic.composeapp.generated.resources.lt_added_by
+import simpmusic.composeapp.generated.resources.lt_room_queue
 import simpmusic.composeapp.generated.resources.lt_invite_hint
 import simpmusic.composeapp.generated.resources.lt_invite_title
 import simpmusic.composeapp.generated.resources.cancel
@@ -384,6 +387,14 @@ private fun ColumnScope.WorkArea(
             AnimatedVisibility(visible = state.isHost && state.suggestions.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Suggestions(state.suggestions, viewModel::approveSuggestion, viewModel::rejectSuggestion)
+                }
+            }
+            // The room queue is visible to EVERYONE, not just the host: knowing what is coming up
+            // (and who put it there) is half the fun of a jam. Read-only by design — reordering
+            // is a host action and the protocol has no move primitive yet.
+            AnimatedVisibility(visible = state.queue.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    RoomQueue(state.queue)
                 }
             }
             Members(
@@ -888,6 +899,82 @@ private fun Suggestions(
             }
         }
     }
+}
+
+/**
+ * What is coming up, for every member of the room — Spotify Jam shows the whole queue to
+ * everyone because "what plays next" is a shared conversation, not host private state.
+ * Read-only: the wire protocol has no move/remove-queue-track primitive, and faking one
+ * client-side would desync the room the moment the host's queue republishes.
+ */
+@Composable
+private fun RoomQueue(tracks: List<RoomTrack>) {
+    SectionHeader(stringResource(Res.string.lt_room_queue), tracks.size)
+    tracks.forEachIndexed { index, track ->
+        Surface {
+            Row(
+                Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                // Position chip, not artwork: queue thumbnails are URLs, and pulling a full
+                // image pipeline into this screen buys nothing at 44dp.
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "${index + 1}",
+                        style = typo().titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        track.title,
+                        style = typo().bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    // "Added by Priya" only when the wire carried it — the host's own tracks
+                    // arrive with suggestedBy empty, and an empty "Added by" is worse than none.
+                    val subtitle =
+                        if (track.suggestedBy.isNotBlank()) {
+                            stringResource(Res.string.lt_added_by, track.suggestedBy)
+                        } else {
+                            track.artist
+                        }
+                    Text(
+                        subtitle,
+                        style = typo().bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (track.durationMs > 0) {
+                    Text(
+                        queueDuration(track.durationMs),
+                        style = typo().labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** m:ss (or h:mm:ss past an hour) for the queue's right-hand edge. */
+private fun queueDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val h = totalSeconds / 3600
+    val m = (totalSeconds % 3600) / 60
+    val s = (totalSeconds % 60).toString().padStart(2, '0')
+    return if (h > 0) "$h:${m.toString().padStart(2, '0')}:$s" else "$m:$s"
 }
 
 @Composable
