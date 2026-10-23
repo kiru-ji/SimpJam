@@ -28,6 +28,24 @@
     static <1>$Companion Companion;
 }
 
+# ── SimpJam: UNCONDITIONAL serialization keeps ───────────────────────────────
+# The conditional `-if @Serializable` rules above can lose the race with R8:
+# if R8 first strips the (apparently unused) static $serializer/Companion
+# field, the -if condition no longer matches and the keep never applies —
+# then navigation's runtime `serializer(KType)` lookup for a typed route
+# throws "Serializer for class '…' is not found" ONLY in minified builds
+# (crashed on tapping Listen Together, v0.1.1). Matching on the generated
+# class NAME instead of annotation+field presence cannot be defeated by
+# prior stripping.
+-keepclasseswithmembers class **.$serializer { *; }
+-keepclassmembers class ** {
+    public static ** Companion;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keepclasseswithmembers class ** {
+    public static **$Companion Companion;
+}
+
 # Keep `serializer()` on companion objects (both default and named) of serializable classes.
 -if @kotlinx.serialization.Serializable class ** {
     static **$* *;
