@@ -20,7 +20,9 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.maxrave.simpmusic"
+        // SimpJam fork identity: distinct from upstream com.maxrave.simpmusic so the fork never
+        // impersonates the official app (and both can be installed side by side).
+        applicationId = "dev.kiruji.simpjam"
         minSdk = 26
         targetSdk = 36
         versionCode =

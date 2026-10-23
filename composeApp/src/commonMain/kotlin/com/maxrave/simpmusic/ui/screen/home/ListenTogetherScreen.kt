@@ -477,7 +477,7 @@ private const val SHARE_PREFIX = "Join my SimpMusic room with code "
  * The join deep link a QR encodes and the share sheet sends: opening it lands on Listen Together
  * with [roomCode] already in the field (App.kt routes `simpmusic://lt?room=CODE`).
  */
-private fun joinLinkFor(roomCode: String): String = "https://simpmusic.org/app/lt?room=$roomCode"
+private fun joinLinkFor(roomCode: String): String = "simpjam://lt?room=$roomCode"
 
 /**
  * The across-the-room invite: a QR of the join link above the code in writing.

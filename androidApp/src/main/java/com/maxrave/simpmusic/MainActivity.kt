@@ -254,7 +254,10 @@ class MainActivity : AppCompatActivity() {
         }
         viewModel.getLocation()
 
-        if (!BuildConfig.DEBUG) viewModel.checkOfficialBuild(packageName, signingCertSha256())
+        // SimpJam fork: the upstream "official build" gate (package allowlist + F-Droid signing
+        // key match) is removed. A fork is signed with its OWN key by definition, so the check
+        // could only ever lock out exactly the builds this repo produces. Provenance for users
+        // is the GitHub release page + FORK_NOTICE.md, not a runtime certificate pin.
         setContent {
             App(viewModel)
         }

@@ -50,7 +50,7 @@
         </intent>
     </queries>
     <queries>
-        <package android:name="com.maxrave.simpmusic" />
+        <package android:name="dev.kiruji.simpjam" />
     </queries>
     <queries>
         <intent>
