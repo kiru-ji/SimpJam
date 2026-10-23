@@ -46,6 +46,15 @@
     public static **$Companion Companion;
 }
 
+# ── SimpJam: navigation typed-route destinations ─────────────────────────────
+# Navigation resolves a typed route with a RUNTIME reflective serializer lookup
+# (serializer(KType) → Companion field → $serializer class BY NAME). Generic
+# member-keeps still let R8 RENAME the classes, so the by-name lookup dies:
+# "Serializer for class 's87' is not found" (v0.1.1, tapping Listen Together).
+# Keep the destination classes AND their generated serializers by name.
+-keep class com.maxrave.simpmusic.ui.navigation.destination.** { *; }
+-keep class com.maxrave.simpmusic.ui.navigation.destination.**$serializer { *; }
+
 # Keep `serializer()` on companion objects (both default and named) of serializable classes.
 -if @kotlinx.serialization.Serializable class ** {
     static **$* *;
