@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [ dev ]
-    tags: [ 'v*' ]
+    # Fork releases carry the simpjam- prefix: upstream's own tag history
+    # (v0.1.5 … v2.3.0) was pushed with the fork, so bare v0.1.x collides.
+    tags: [ 'v*', 'simpjam-v*' ]
     paths-ignore:
       - 'README.md'
       - 'ROADMAP.md'
@@ -217,7 +219,7 @@ jobs:
           path: dist/*.apk
 
       - name: Publish to GitHub Releases (on version tags)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/simpjam-v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
