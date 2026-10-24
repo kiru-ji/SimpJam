@@ -114,12 +114,12 @@ jobs:
             # v0.1.1 shipped a minified build where navigation's runtime serializer
             # lookup threw "Serializer for class '…' is not found" on opening Listen
             # Together: R8 had stripped the generated $serializer for a typed route.
-            # NB: Kotlin generates $$serializer (DOUBLE $) as a nested class of the
-            # data class — a single-$ needle never matches and false-fails the build.
-            # These needles fail the build if the names ever regress.
+            # NB: a @Serializable data CLASS emits Class$$serializer (double $); a
+            # data OBJECT does NOT — the object itself is the serializer, so only its
+            # class name is checkable. Keep rules name-pin both; needles match reality.
             'Lcom/maxrave/simpmusic/ui/navigation/destination/home/ListenTogetherDestination;'
             'Lcom/maxrave/simpmusic/ui/navigation/destination/home/ListenTogetherDestination$$serializer;'
-            'Lcom/maxrave/simpmusic/ui/navigation/destination/home/ListenTogetherSettingsDestination$$serializer;'
+            'Lcom/maxrave/simpmusic/ui/navigation/destination/home/ListenTogetherSettingsDestination;'
           )
           FAIL=0
           for n in "${NEEDLES[@]}"; do
