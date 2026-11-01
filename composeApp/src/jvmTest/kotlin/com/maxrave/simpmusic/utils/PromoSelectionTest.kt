@@ -117,6 +117,19 @@ class PromoSelectionTest {
     }
 
     @Test
+    fun `fork-prefixed simpjam tags are parsed, not silently ignored`() {
+        // The trap that stranded a device on crashing v0.1.1: "simpjam-v0.1.6" stripped only its
+        // leading letter, parsed to zeros, and the updater concluded nothing was ever newer.
+        assertTrue(isNewerRelease(current = "0.1.5", tag = "simpjam-v0.1.6"))
+        assertTrue(isNewerRelease(current = "0.1.1", tag = "simpjam-v0.1.5"))
+        assertFalse(isNewerRelease(current = "0.1.6", tag = "simpjam-v0.1.6"))
+        assertFalse(isNewerRelease(current = "0.1.7", tag = "simpjam-v0.1.6"))
+        assertEquals("0.1.6", stripTagPrefix("simpjam-v0.1.6"))
+        assertEquals("2.3.0", stripTagPrefix("v2.3.0"))
+        assertEquals("2.3.0", stripTagPrefix("2.3.0"))
+    }
+
+    @Test
     fun `skips a banner whose link a tap could not open`() {
         val links =
             listOf("http://x", "simpmusic//analytics", "ftp://x", "simpmusic://wrapped", "HTTPS://x", "simpmusic://analytics")
