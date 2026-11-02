@@ -695,7 +695,8 @@ fun NowPlayingScreenContent(
             },
             onOpenListenTogether = {
                 onDismiss()
-                navController.navigate(ListenTogetherDestination)
+                // Constructor call, not the bare data-class name (that resolves to Companion → no serializer).
+                navController.navigate(ListenTogetherDestination())
             },
             onAddToYouTubeLiked = { sharedViewModel.addToYouTubeLiked() },
             onShowMoreSheet = { showSheet = true },

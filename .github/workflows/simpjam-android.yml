@@ -65,6 +65,12 @@ jobs:
       - name: Run listenTogether unit tests
         run: ./gradlew :listenTogether:jvmTest --tests "org.simpmusic.listentogether.ServerClockTest" --tests "org.simpmusic.listentogether.MessageCodecTest" --tests "org.simpmusic.listentogether.BlocklistTest"
 
+      # The v0.1.1/v0.1.6 device crash ("Serializer for class 'Companion'") was a CALL-SITE bug:
+      # navigate(BareDataClassName) passes the Companion, which has no serializer. R8 keeps cannot
+      # catch it and no other test walks UI call sites — this static scan does, and fails CI.
+      - name: Navigation route safety scan (bare-name data-class trap)
+        run: ./gradlew :composeApp:jvmTest --tests "com.maxrave.simpmusic.utils.NavigationRouteSafetyTest"
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

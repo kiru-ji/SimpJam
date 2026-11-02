@@ -153,7 +153,11 @@ fun CreateActions(
             },
             onListenTogether = {
                 showCreate = false
-                navController.navigate(ListenTogetherDestination)
+                // Constructor call, NOT the bare name: ListenTogetherDestination is a data class
+                // (roomCode defaults to null for plain navigation). Passing the bare name hands
+                // navigation its Companion object, which has no serializer — instant
+                // "Serializer for class 'Companion' is not found" crash on tap.
+                navController.navigate(ListenTogetherDestination())
             },
         )
     }

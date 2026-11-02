@@ -481,7 +481,7 @@ fun LibraryScreen(
             // The Library bar had no actions slot at all — added for the Listen Together entry,
             // which the design canvas puts on Home AND Library.
             actions = {
-                ListenTogetherIconButton { navController.navigate(ListenTogetherDestination) }
+                ListenTogetherIconButton { navController.navigate(ListenTogetherDestination()) }
             },
         )
         AnimatedVisibility(visible = selectionState.isActive) {
